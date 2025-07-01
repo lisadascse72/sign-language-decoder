@@ -2,7 +2,7 @@
 
 A **Streamlit-based web app** that uses **YOLOv8** for recognizing letters from **sign language gestures**. Users can upload images or videos, or use their webcam to detect hand signs in real-time. The app also provides audio feedback for detected letters.
 
-> ⚡ This project is a customized version of the original work by [Mariam Gamal](https://github.com/mariamgamalcs/Sign-Language-Detection) with additional modifications and simplifications.
+> ⚡ This project is a customized version of the original work by [Mariam Gamal](https://github.com/Mariam111) with additional modifications and simplifications.
 
 ---
 
