@@ -1,20 +1,42 @@
-# Sign Language Recognition using YOLOv8
+# 🤖 Sign Language Decoder
 
-The project aims to create a system to understand sign language gestures. It uses a robust algorithm called [YOLOv8](https://github.com/ultralytics/ultralytics) to detect and interpret these gestures in real-time.
+A **Streamlit-based web app** that uses **YOLOv8** for recognizing letters from **sign language gestures**. Users can upload images or videos, or use their webcam to detect hand signs in real-time. The app also provides audio feedback for detected letters.
 
+> ⚡ This project is a customized version of the original work by [Mariam Gamal](https://github.com/mariamgamalcs/Sign-Language-Detection) with additional modifications and simplifications.
 
-## Dataset
-The American Sign Language Letters Dataset used was obtained from [roboflow ](https://public.roboflow.com/). it contains 1728 images 
+---
 
-## Model
-yolo8n.pt was used to train the data for 100 epochs .if you want to retrain the model run the command
+## 🎯 Features
+
+- ✅ Detect **sign language letters** from:
+  - Uploaded images
+  - Uploaded or sample videos
+  - Webcam in real-time
+- ✅ Display of **detected letters** on-screen
+- ✅ **Text-to-speech** for detected letters (using `pyttsx3`)
+- ✅ YOLOv8 model-based accurate predictions
+- ✅ Clean and minimal interface using **Streamlit**
+
+---
+
+## 🔧 Tech Stack
+
+- [Ultralytics YOLOv8](https://docs.ultralytics.com/)
+- [Streamlit](https://streamlit.io/)
+- [OpenCV](https://opencv.org/)
+- [PIL (Pillow)](https://pillow.readthedocs.io/)
+- [pyttsx3](https://pyttsx3.readthedocs.io/)
+
+---
+
+## 🚀 Getting Started
+
+### 1. Clone the repository
+
 ```bash
-  python train.py
-```
-and after training you will find a new folder named runs
-inside that path runs/train/weights you will find best.pt copy it to weights folder.
-## Run Locally
-Clone the project
+git clone https://github.com/lisadascse72/sign-language-decoder.git
+cd sign-language-decoder
+
 
 ```bash
   git clone https://github.com/Mariam111/Sign-Language-Recognition
@@ -38,26 +60,8 @@ Start the server
   python -m streamlit run app.py
 ```
 
-
-
-
-
-
-## Demo
-
-https://drive.google.com/drive/folders/1ABQgB4ffNWWg5p-wrRbjfbAAjWF-rsmn
-
-
-## Screenshots
-
-![App Screenshot](home.png)
-
-
-## Author
+#original Author
 
 - [Mariam Gamal](https://github.com/Mariam111)
 
 
-## Contributing
-
-Contributions are always welcome!
