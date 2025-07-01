@@ -2,7 +2,6 @@ from ultralytics import YOLO
 import streamlit as st
 import cv2
 import settings
-from gemini_helper import predict_sentence_from_letters  # 🔮 Gemini API
 
 # 🔡 Class ID to Alphabet Mapping
 CLASS_NAMES = {
@@ -56,10 +55,6 @@ def _display_detected_frames(conf, model, st_frame, image, is_display_tracking=N
 
         st.success(f"Detected Letter: {letter}")
         st.markdown(f"🅰️ **Recent Letters**: `{''.join(st.session_state['recent_letters'])}`")
-
-        if st.session_state.get("show_sentence", True):
-            predicted = predict_sentence_from_letters("".join(st.session_state["recent_letters"]))
-            st.info(f"🧠 **Predicted Word/Sentence**: `{predicted}`")
 
 def play_webcam(conf, model):
     source_webcam = settings.WEBCAM_PATH

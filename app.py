@@ -20,10 +20,6 @@ st.title("🤖 Sign Language Recognition using YOLOv8")
 # ✅ Sidebar - Confidence slider
 confidence = float(st.sidebar.slider("Select Model Confidence", 25, 100, 40)) / 100
 
-# ✅ Sidebar - AI Features
-st.sidebar.subheader("💬 AI Features")
-st.session_state["show_sentence"] = st.sidebar.checkbox("Show Gemini Sentence Output", value=True)
-
 # ✅ Load model
 model_path = Path(settings.DETECTION_MODEL)
 try:
