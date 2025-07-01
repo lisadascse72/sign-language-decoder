@@ -2,160 +2,117 @@ from ultralytics import YOLO
 import streamlit as st
 import cv2
 import settings
+from gemini_helper import predict_sentence_from_letters  # 🔮 Gemini API
 
+# 🔡 Class ID to Alphabet Mapping
+CLASS_NAMES = {
+    0: 'A', 1: 'B', 2: 'C', 3: 'D', 4: 'E',
+    5: 'F', 6: 'G', 7: 'H', 8: 'I', 9: 'J',
+    10: 'K', 11: 'L', 12: 'M', 13: 'N', 14: 'O',
+    15: 'P', 16: 'Q', 17: 'R', 18: 'S', 19: 'T',
+    20: 'U', 21: 'V', 22: 'W', 23: 'X', 24: 'Y', 25: 'Z'
+}
+
+BUFFER_LIMIT = 10
 
 def load_model(model_path):
-    """
-    Loads a YOLO object detection model from the specified model_path.
-
-    Parameters:
-        model_path (str): The path to the YOLO model file.
-
-    Returns:
-        A YOLO object detection model.
-    """
-    model = YOLO(model_path)
-    return model
-
+    return YOLO(model_path)
 
 def display_tracker_options():
-    display_tracker = st.radio("Display Tracker", ('Yes', 'No'))
-    is_display_tracker = True if display_tracker == 'Yes' else False
+    display_tracker = st.radio("Display Tracker", ('Yes', 'No'), key="tracker_toggle")
+    is_display_tracker = display_tracker == 'Yes'
     if is_display_tracker:
-        tracker_type = st.radio("Tracker", ("bytetrack.yaml", "botsort.yaml"))
+        tracker_type = st.radio("Tracker", ("bytetrack.yaml", "botsort.yaml"), key="tracker_choice")
         return is_display_tracker, tracker_type
-    return is_display_tracker, None
+    return False, None
 
+def get_detected_letter(results):
+    detections = results[0].boxes.data.cpu().numpy()
+    if len(detections) > 0:
+        class_id = int(detections[0][5])
+        return CLASS_NAMES.get(class_id, '?')
+    return None
 
 def _display_detected_frames(conf, model, st_frame, image, is_display_tracking=None, tracker=None):
-    """
-    Display the detected objects on a video frame using the YOLOv8 model.
+    if "recent_letters" not in st.session_state:
+        st.session_state["recent_letters"] = []
 
-    Args:
-    - conf (float): Confidence threshold for object detection.
-    - model (YoloV8): A YOLOv8 object detection model.
-    - st_frame (Streamlit object): A Streamlit object to display the detected video.
-    - image (numpy array): A numpy array representing the video frame.
-    - is_display_tracking (bool): A flag indicating whether to display object tracking (default=None).
+    image = cv2.resize(image, (720, int(720 * (9 / 16))))
 
-    Returns:
-    None
-    """
-
-    # Resize the image to a standard size
-    image = cv2.resize(image, (720, int(720*(9/16))))
-
-    # Display object tracking, if specified
     if is_display_tracking:
-        
-        res = model.track(image, conf=conf, persist=True, tracker=tracker)
+        results = model.track(image, conf=conf, persist=True, tracker=tracker)
     else:
-        # Predict the objects in the image using the YOLOv8 model
-        
-        res = model.predict(image, conf=conf)
+        results = model.predict(image, conf=conf)
 
-    # # Plot the detected objects on the video frame
-    res_plotted = res[0].plot()
-    st_frame.image(res_plotted,
-                   caption='Detected Video',
-                   channels="BGR",
-                   use_column_width=True
-                   )
+    res_plotted = results[0].plot()
+    st_frame.image(res_plotted, caption='Detected Frame', channels="BGR", use_container_width=True)
+
+    letter = get_detected_letter(results)
+    if letter:
+        if not st.session_state["recent_letters"] or st.session_state["recent_letters"][-1] != letter:
+            st.session_state["recent_letters"].append(letter)
+            if len(st.session_state["recent_letters"]) > BUFFER_LIMIT:
+                st.session_state["recent_letters"].pop(0)
+
+        st.success(f"Detected Letter: {letter}")
+        st.markdown(f"🅰️ **Recent Letters**: `{''.join(st.session_state['recent_letters'])}`")
+
+        if st.session_state.get("show_sentence", True):
+            predicted = predict_sentence_from_letters("".join(st.session_state["recent_letters"]))
+            st.info(f"🧠 **Predicted Word/Sentence**: `{predicted}`")
 
 def play_webcam(conf, model):
-    """
-    Plays a webcam stream. Detects Objects in real-time using the YOLOv8 object detection model.
-
-    Parameters:
-        conf: Confidence of YOLOv8 model.
-        model: An instance of the `YOLOv8` class containing the YOLOv8 model.
-
-    Returns:
-        None
-
-    Raises:
-        None
-    """
     source_webcam = settings.WEBCAM_PATH
     is_display_tracker, tracker = display_tracker_options()
-    if st.sidebar.button('Detect webcam signs'):
+
+    if st.sidebar.button('▶️ Detect Webcam Signs', key="webcam_button"):
         try:
             vid_cap = cv2.VideoCapture(source_webcam)
             st_frame = st.empty()
-            while (vid_cap.isOpened()):
+            while vid_cap.isOpened():
                 success, image = vid_cap.read()
                 image = cv2.flip(image, 1)
                 if success:
-                    _display_detected_frames(conf,
-                                             model,
-                                             st_frame,
-                                             image,
-                                             is_display_tracker,
-                                             tracker,
-                                             )
+                    _display_detected_frames(conf, model, st_frame, image, is_display_tracker, tracker)
                 else:
                     vid_cap.release()
                     break
         except Exception as e:
-            st.sidebar.error("Error loading video: " + str(e))
-"""
-    source_webcam = settings.WEBCAM_PATH
-    
-     
-    if st.sidebar.button('Detect Signs'):
-        try:
-            
-            model.predict(source_webcam,show=True,conf=conf)
-            
+            st.sidebar.error("Error accessing webcam.")
+            st.exception(e)
 
-        except Exception as e:
-            st.sidebar.error("Error loading video: " + str(e))
-
-"""
 def play_stored_video(conf, model):
-    """
-    Plays a stored video file. Tracks and detects objects in real-time using the YOLOv8 object detection model.
-
-    Parameters:
-        conf: Confidence of YOLOv8 model.
-        model: An instance of the `YOLOv8` class containing the YOLOv8 model.
-
-    Returns:
-        None
-
-    Raises:
-        None
-    """
-    source_vid = st.sidebar.selectbox(
-        "Choose a video...", settings.VIDEOS_DICT.keys())
-
+    is_upload = st.sidebar.radio("🎦 Video Source", ["Sample Videos", "Upload Your Own"], key="video_source_toggle")
     is_display_tracker, tracker = display_tracker_options()
 
-    with open(settings.VIDEOS_DICT.get(source_vid), 'rb') as video_file:
-        video_bytes = video_file.read()
-    if video_bytes:
-        st.video(video_bytes)
+    video_path = None
+    if is_upload == "Sample Videos":
+        source_vid = st.sidebar.selectbox("🎞️ Choose a video...", settings.VIDEOS_DICT.keys(), key="video_selector")
+        video_path = settings.VIDEOS_DICT.get(source_vid)
+    else:
+        uploaded_video = st.sidebar.file_uploader("📤 Upload your video", type=["mp4", "avi", "mov"], key="video_upload")
+        if uploaded_video:
+            video_path = "temp_uploaded_video.mp4"
+            with open(video_path, "wb") as out_file:
+                out_file.write(uploaded_video.read())
+        else:
+            st.warning("Please upload a video.")
+            return
 
-    if st.sidebar.button('Detect Video Signs'):
+    if video_path:
+        st.video(video_path)
 
-        
+    if st.sidebar.button('▶️ Detect Video Signs', key="video_button"):
         try:
-            vid_cap = cv2.VideoCapture(
-                str(settings.VIDEOS_DICT.get(source_vid)))
+            vid_cap = cv2.VideoCapture(str(video_path))
             st_frame = st.empty()
-            while (vid_cap.isOpened()):
+            while vid_cap.isOpened():
                 success, image = vid_cap.read()
                 if success:
-                    _display_detected_frames(conf,
-                                             model,
-                                             st_frame,
-                                             image,
-                                             is_display_tracker,
-                                             tracker
-                                             )
+                    _display_detected_frames(conf, model, st_frame, image, is_display_tracker, tracker)
                 else:
                     vid_cap.release()
                     break
         except Exception as e:
-            st.sidebar.error("Error loading video: " + str(e))
-        cv2.waitKey(0)
+            st.sidebar.error("Error processing video.")
+            st.exception(e)
